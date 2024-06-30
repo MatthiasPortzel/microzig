@@ -69,7 +69,7 @@ pub const UART = enum(u1) {
         };
     }
 
-    pub fn apply(uart: UART, comptime config: Config) void {
+    pub fn apply(uart: UART, config: Config) void {
         assert(config.baud_rate > 0);
 
         const uart_regs = uart.get_regs();
