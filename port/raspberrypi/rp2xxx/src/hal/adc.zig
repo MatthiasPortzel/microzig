@@ -17,7 +17,7 @@ pub const Error = error{
 
 /// temp_sensor is not valid because you can refer to it by name.
 pub fn input(n: u2) Input {
-    return @as(Input, @enumFromInt(n));
+    return @enumFromInt(n);
 }
 
 /// Enable the ADC controller.
@@ -50,7 +50,7 @@ pub fn apply(config: Config) void {
         .ERR_STICKY = 0,
         .AINSEL = 0,
         .RROBIN = if (config.round_robin) |rr|
-            @as(u5, @bitCast(rr))
+            @bitCast(rr)
         else
             0,
 
@@ -63,8 +63,8 @@ pub fn apply(config: Config) void {
     if (config.sample_frequency) |sample_frequency| {
         const cycles = (48_000_000 * 256) / @as(u64, sample_frequency);
         ADC.DIV.write(.{
-            .FRAC = @as(u8, @truncate(cycles)),
-            .INT = @as(u16, @intCast((cycles >> 8) - 1)),
+            .FRAC = @truncate(cycles),
+            .INT = @intCast((cycles >> 8) - 1),
 
             .padding = 0,
         });
@@ -85,7 +85,7 @@ pub fn select_input(in: Input) void {
 /// 4 is the temperature sensor.
 pub fn get_selected_input() Input {
     const cs = ADC.SC.read();
-    return @as(Input, @enumFromInt(cs.AINSEL));
+    return @enumFromInt(cs.AINSEL);
 }
 
 pub const Input = enum(u3) {
