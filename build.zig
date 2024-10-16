@@ -462,7 +462,7 @@ pub fn MicroBuild(port_select: PortSelect) type {
         /// Creates a new `std.Build.Step.InstallFile` instance that will install the given firmware to `$prefix/firmware`.
         ///
         /// **NOTE:** This does not actually install the firmware yet. You have to add the returned step as a dependency to another step.
-        ///           If you want to just install the firmware, use `installFirmware` instead!
+        ///           If you want to just install the firmware, use `install_firmware` instead!
         pub fn add_install_firmware(mb: *Self, fw: *Firmware, options: InstallFirmwareOptions) *Build.Step.InstallFile {
             std.debug.assert(mb == fw.mb);
 
