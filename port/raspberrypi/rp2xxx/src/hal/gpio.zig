@@ -102,18 +102,18 @@ pub fn num(n: u6) Pin {
         },
     }
 
-    return @as(Pin, @enumFromInt(n));
+    return @enumFromInt(n);
 }
 
 pub const mask = switch (get_cpu()) {
     .RP2040 => struct {
         pub fn mask(m: u30) Mask {
-            return @as(Mask, @enumFromInt(m));
+            return @enumFromInt(m);
         }
     }.mask,
     .RP2350 => struct {
         pub fn mask(m: u48) Mask {
-            return @as(Mask, @enumFromInt(m));
+            return @enumFromInt(m);
         }
     }.mask,
 };
@@ -126,7 +126,7 @@ pub const Mask =
         pub fn set_function(self: Mask, function: Function) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u5, @intCast(i));
+                const bit: u5 = @intCast(i);
                 if (0 != raw_mask & (@as(u32, 1) << bit))
                     num(bit).set_function(function);
             }
@@ -143,7 +143,7 @@ pub const Mask =
         pub fn set_pull(self: Mask, pull: Pull) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u5, @intCast(i));
+                const bit: u5 = @intCast(i);
                 if (0 != raw_mask & (@as(u32, 1) << bit))
                     num(bit).set_pull(pull);
             }
@@ -152,7 +152,7 @@ pub const Mask =
         pub fn set_slew_rate(self: Mask, slew_rate: SlewRate) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u5, @intCast(i));
+                const bit: u5 = @intCast(i);
                 if (0 != raw_mask & (@as(u32, 1) << bit))
                     num(bit).set_slew_rate(slew_rate);
             }
@@ -161,7 +161,7 @@ pub const Mask =
         pub fn set_schmitt_trigger(self: Mask, enabled: Enabled) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u5, @intCast(i));
+                const bit: u5 = @intCast(i);
                 if (0 != raw_mask & (@as(u32, 1) << bit))
                     num(bit).set_schmitt_trigger(enabled);
             }
@@ -189,7 +189,7 @@ pub const Mask =
         pub fn set_function(self: Mask, function: Function) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u6, @intCast(i));
+                const bit: u6 = @intCast(i);
                 if (0 != raw_mask & (@as(u48, 1) << bit))
                     num(bit).set_function(function);
             }
@@ -213,7 +213,7 @@ pub const Mask =
         pub fn set_pull(self: Mask, pull: Pull) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u6, @intCast(i));
+                const bit: u6 = @intCast(i);
                 if (0 != raw_mask & (@as(u48, 1) << bit))
                     num(bit).set_pull(pull);
             }
@@ -222,7 +222,7 @@ pub const Mask =
         pub fn set_slew_rate(self: Mask, slew_rate: SlewRate) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u6, @intCast(i));
+                const bit: u6 = @intCast(i);
                 if (0 != raw_mask & (@as(u48, 1) << bit))
                     num(bit).set_slew_rate(slew_rate);
             }
@@ -231,7 +231,7 @@ pub const Mask =
         pub fn set_schmitt_trigger(self: Mask, enabled: Enabled) void {
             const raw_mask = @intFromEnum(self);
             for (0..@bitSizeOf(Mask)) |i| {
-                const bit = @as(u6, @intCast(i));
+                const bit: u6 = @intCast(i);
                 if (0 != raw_mask & (@as(u48, 1) << bit))
                     num(bit).set_schmitt_trigger(enabled);
             }
@@ -333,12 +333,12 @@ pub const Pin = enum(u6) {
     };
 
     fn get_regs(gpio: Pin) *volatile Regs {
-        const regs = @as(RegsArray, @ptrCast(&IO_BANK0.GPIO0_STATUS));
+        const regs: RegsArray = @ptrCast(&IO_BANK0.GPIO0_STATUS);
         return &regs[@intFromEnum(gpio)];
     }
 
     fn get_pads_reg(gpio: Pin) *volatile PadsReg {
-        const regs = @as(PadsRegArray, @ptrCast(&PADS_BANK0.GPIO0));
+        const regs: PadsRegArray = @ptrCast(&PADS_BANK0.GPIO0);
         return &regs[@intFromEnum(gpio)];
     }
 
