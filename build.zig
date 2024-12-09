@@ -12,6 +12,8 @@ pub const MemoryRegion = internals.MemoryRegion;
 
 const regz = @import("tools/regz");
 
+// If more ports are available, the error "error: evaluation exceeded 1000 backwards branches" may occur.
+// In such cases, consider increasing the argument value for @setEvalBranchQuota().
 const port_list: []const struct {
     name: [:0]const u8,
     dep_name: [:0]const u8,
@@ -24,7 +26,7 @@ const port_list: []const struct {
     .{ .name = "lpc", .dep_name = "port/nxp/lpc" },
     .{ .name = "rp2xxx", .dep_name = "port/raspberrypi/rp2xxx" },
     .{ .name = "stm32", .dep_name = "port/stmicro/stm32" },
-    //.{ .name = "ch32v", .dep_name = "port/wch/ch32v" },
+    .{ .name = "ch32v", .dep_name = "port/wch/ch32v" },
 };
 
 pub fn build(b: *Build) void {
@@ -166,7 +168,6 @@ pub fn MicroBuild(port_select: PortSelect) type {
         ports: SelectedPorts,
 
         const InitReturnType = blk: {
-            // TODO: idk if this is idiomatic
             @setEvalBranchQuota(2000);
 
             var ok = true;
@@ -241,11 +242,11 @@ pub fn MicroBuild(port_select: PortSelect) type {
             /// If set, overrides the `bundle_compiler_rt` property of the target.
             bundle_compiler_rt: ?bool = null,
 
-            /// If set, overrides the `hal` module.
-            hal: ?*Build.Module = null,
+            /// If set, overrides the `hal` property of the target.
+            hal: ?HardwareAbstractionLayer = null,
 
-            /// If set, overrides the `board` module.
-            board: ?*Build.Module = null,
+            /// If set, overrides the `board` property of the target.
+            board: ?Board = null,
 
             /// If set, overrides the `linker_script` property of the target.
             linker_script: ?LazyPath = null,
@@ -293,9 +294,12 @@ pub fn MicroBuild(port_select: PortSelect) type {
                 } else @panic("no ram memory region found for setting the end-of-stack address");
             };
 
+            const maybe_hal = options.hal orelse target.hal;
+            const maybe_board = options.board orelse target.board;
+
             const config = b.addOptions();
-            config.addOption(bool, "has_hal", options.hal != null or target.hal != null);
-            config.addOption(bool, "has_board", options.board != null or target.board != null);
+            config.addOption(bool, "has_hal", maybe_hal != null);
+            config.addOption(bool, "has_board", maybe_board != null);
 
             config.addOption([]const u8, "cpu_name", zig_target.result.cpu.model.name);
             config.addOption([]const u8, "chip_name", target.chip.name);
@@ -315,7 +319,12 @@ pub fn MicroBuild(port_select: PortSelect) type {
                 },
             });
 
-            const cpu_mod = cpu.create_module(b, mb.core_dep);
+            const cpu_mod = if (target.chip.cpu_module_file) |root_source_file|
+                b.createModule(.{
+                    .root_source_file = root_source_file,
+                })
+            else
+                cpu.create_module(b, mb.core_dep);
             cpu_mod.addImport("microzig", core_mod);
             core_mod.addImport("cpu", cpu_mod);
 
@@ -362,8 +371,8 @@ pub fn MicroBuild(port_select: PortSelect) type {
             chip_mod.addImport("microzig", core_mod);
             core_mod.addImport("chip", chip_mod);
 
-            if (target.hal) |hal| {
-                const hal_mod = options.hal orelse b.createModule(.{
+            if (maybe_hal) |hal| {
+                const hal_mod = b.createModule(.{
                     .root_source_file = hal.root_source_file,
                     .imports = hal.imports,
                 });
@@ -371,8 +380,8 @@ pub fn MicroBuild(port_select: PortSelect) type {
                 core_mod.addImport("hal", hal_mod);
             }
 
-            if (target.board) |board| {
-                const board_mod = options.board orelse b.createModule(.{
+            if (maybe_board) |board| {
+                const board_mod = b.createModule(.{
                     .root_source_file = board.root_source_file,
                     .imports = board.imports,
                 });
@@ -389,6 +398,7 @@ pub fn MicroBuild(port_select: PortSelect) type {
             const fw = mb.builder.allocator.create(Firmware) catch @panic("out of memory");
             fw.* = .{
                 .mb = mb,
+                .core_mod = core_mod,
                 .artifact = mb.builder.addExecutable(.{
                     .name = options.name,
                     .optimize = options.optimize,
@@ -480,6 +490,9 @@ pub fn MicroBuild(port_select: PortSelect) type {
 
             /// The app module that is built by Zig.
             app_mod: *Build.Module,
+
+            // The @import("microzig") module
+            core_mod: *Build.Module,
 
             /// The target to which the firmware is built.
             target: *const Target,
@@ -573,7 +586,7 @@ pub fn MicroBuild(port_select: PortSelect) type {
             /// Adds an import to your application.
             pub fn add_app_import(fw: *Firmware, name: []const u8, module: *Build.Module, options: AppDependencyOptions) void {
                 if (options.depend_on_microzig) {
-                    module.addImport("microzig", fw.modules.microzig);
+                    module.addImport("microzig", fw.core_mod);
                 }
                 fw.app_mod.addImport(name, module);
             }
@@ -660,6 +673,7 @@ pub inline fn custom_lazy_import(
 }
 
 inline fn custom_find_import_pkg_hash_or_fatal(comptime dep_name: []const u8) []const u8 {
+    @setEvalBranchQuota(2000);
     const build_runner = @import("root");
     const deps = build_runner.dependencies;
 
